@@ -36,6 +36,7 @@ build/
 
 # Log file
 *.log
+*.attach_*
 
 # BlueJ files
 *.ctxt
