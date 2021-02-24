@@ -25,6 +25,7 @@ import com.indexacaoEbusca.models.UploadFileResponse;
 import com.indexacaoEbusca.services.DBFileStorageService;
 import com.indexacaoEbusca.services.DocumentoService;
 import com.indexacaoEbusca.services.FileStorageService;
+import com.indexacaoEbusca.services.IndexadorService;
 import com.indexacaoEbusca.services.KeywordsExtractorService;
 import com.indexacaoEbusca.services.OCRService;
 import com.indexacaoEbusca.services.ProcessadorService;
@@ -53,6 +54,9 @@ public class DocumentoController {
 	
 	@Autowired
 	private KeywordsExtractorService keywordExtractor;
+	
+	@Autowired
+	private IndexadorService indexador;
 
 	@GetMapping
 	public ResponseEntity<?> listAll() {
@@ -70,11 +74,6 @@ public class DocumentoController {
 	public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
 		String location = fileStorageService.storeFile(file);
 
-		/*
-		 * String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-		 * .path("/downloadFile/") .path(fileName) .toUriString();
-		 */
-
 		String extracao = ocrService.crack(location);
 		
 		String processada = processador.processarTexto(extracao);
@@ -88,6 +87,7 @@ public class DocumentoController {
 		}
 		
 		Documento doc = new Documento();
+		String textSteam = "";
 		
 		if (!keywords.isEmpty()) {
 			
@@ -96,6 +96,8 @@ public class DocumentoController {
 			for (Stem keyword : keywords) {
 				result.append(keyword.getStem() + " ");
 			}
+			
+			textSteam = result.toString();
 			
 			int size = result.length();
 			
@@ -107,33 +109,29 @@ public class DocumentoController {
 
 		}
 		
+		fileStorageService.storeKeywords(textSteam);
+		
+		indexador.criarOuAtualizarIndices();
+		
 		Documento save = service.create(doc);
 		
 		dbFileStorageService.storeFile(file);
 		
-
-
-		/*
-		 * return new UploadFileResponse(fileName, fileDownloadUri,
-		 * file.getContentType(), file.getSize());
-		 */
-
-		return save != null ? ResponseEntity.status(HttpStatus.CREATED).body(save)
-				: ResponseEntity.badRequest().build();
-	}
-
-	@PostMapping("/fileToDB")
-	public UploadFileResponse fileToDB(@RequestParam("file") MultipartFile file) {
 		DBFile dbFile = dbFileStorageService.storeFile(file);
-
+		
 		String fileDownloadUri = ServletUriComponentsBuilder.
 				fromCurrentContextPath()
 				.path(BASE_URL)
 				.path("/downloadFile/")
-				.path(dbFile.getId().toString()).toUriString();
+				.path(dbFile.getId().toString())
+				.toUriString();
 
-		return new UploadFileResponse(dbFile.getFileName(), fileDownloadUri, file.getContentType(), file.getSize());
+		return save != null ? 
+				ResponseEntity.status(HttpStatus.CREATED)
+				.body(new UploadFileResponse(dbFile.getFileName(), fileDownloadUri, file.getContentType(), file.getSize()))
+				: ResponseEntity.badRequest().build();
 	}
+
 	
 	@GetMapping("/downloadFile/{fileId}")
 	public ResponseEntity<Resource> downloadFile(@PathVariable Long fileId) {

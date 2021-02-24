@@ -1,6 +1,8 @@
 package com.indexacaoEbusca.services;
 
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -49,6 +51,23 @@ public class FileStorageService {
         } catch (IOException ex) {
             throw new FileStorageException("Could not store file " + fileName + ". Please try again!", ex);
         }
+    }
+    
+    public void storeKeywords(String text) {
+    	FileWriter arq;
+    	PrintWriter escrever;
+    	
+		try {
+			arq = new FileWriter("./keywords/keywords.txt");
+			escrever = new PrintWriter(arq);
+			escrever.printf(text);
+			
+			arq.close();
+			escrever.close();
+			
+		} catch (IOException e) {
+			throw new FileStorageException("Could not store file keywords.txt. Please try again!", e);
+		}
     }
 
 }

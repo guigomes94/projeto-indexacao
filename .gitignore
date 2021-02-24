@@ -4,6 +4,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+/localStorage
+/indice
+/keywords
+
 ### STS ###
 .apt_generated
 .classpath
