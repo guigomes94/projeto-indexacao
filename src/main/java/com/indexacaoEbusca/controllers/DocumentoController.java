@@ -111,11 +111,7 @@ public class DocumentoController {
 		
 		fileStorageService.storeKeywords(textSteam);
 		
-		indexador.criarOuAtualizarIndices();
-		
 		Documento save = service.create(doc);
-		
-		dbFileStorageService.storeFile(file);
 		
 		DBFile dbFile = dbFileStorageService.storeFile(file);
 		
@@ -125,6 +121,8 @@ public class DocumentoController {
 				.path("/downloadFile/")
 				.path(dbFile.getId().toString())
 				.toUriString();
+		
+		indexador.criarOuAtualizarIndices(dbFile.getId().toString());
 
 		return save != null ? 
 				ResponseEntity.status(HttpStatus.CREATED)

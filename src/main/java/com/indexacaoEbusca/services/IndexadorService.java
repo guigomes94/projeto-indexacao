@@ -1,6 +1,7 @@
 package com.indexacaoEbusca.services;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -46,10 +47,11 @@ public class IndexadorService {
 	 * @param path The file to index, or the directory to recurse into to find files to index
 	 * @throws IOException If there is a low-level I/O error
 	 */
-	public void criarOuAtualizarIndices() {
+	public void criarOuAtualizarIndices(String idArquivo) {
 		String pastaArquivos = "keywords";
-		boolean create = true;
 		String pastaIndice = "indice";
+		boolean create = isDirEmpty(pastaIndice);
+		
 		final Path path = Paths.get(pastaArquivos);
 		if (!Files.isReadable(path)) {
 			System.out.println("pasta origem '" +path.toAbsolutePath()+ "' does not exist or is not readable, please check the path");
@@ -93,7 +95,7 @@ public class IndexadorService {
 					@Override
 					public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 						try {
-							indexarDocumento(writer, file, attrs.lastModifiedTime().toMillis());
+							indexarDocumento(writer, file, attrs.lastModifiedTime().toMillis(), idArquivo);
 						} catch (IOException ignore) {
 							// don't index files that can't be read.
 						}
@@ -102,7 +104,7 @@ public class IndexadorService {
 				});
 			} 
 			else {
-				indexarDocumento(writer, path, Files.getLastModifiedTime(path).toMillis());
+				indexarDocumento(writer, path, Files.getLastModifiedTime(path).toMillis(), idArquivo);
 			}
 			writer.close();
 
@@ -113,8 +115,19 @@ public class IndexadorService {
 
 	}
 
+	private boolean isDirEmpty(String path) {
+		File dir = new File(path);
+		File[] arqs = dir.listFiles();
+		
+		if (arqs.length == 0) {
+			return true;
+		}
+		
+		return false;
+	}
+
 	/** indexar um unico documento */
-	static void indexarDocumento(IndexWriter writer, Path file, long lastModified) throws IOException {
+	static void indexarDocumento(IndexWriter writer, Path file, long lastModified, String idArquivo) throws IOException {
 		try (InputStream stream = Files.newInputStream(file)) {
 			// make a new, empty document
 			Document doc = new Document();
@@ -124,7 +137,7 @@ public class IndexadorService {
 			// the field into separate words and don't index term frequency
 			// or positional information:
 			//path == title
-			Field pathField = new StringField("path", file.toString(), Field.Store.YES);
+			Field pathField = new StringField("path", idArquivo, Field.Store.YES);
 			doc.add(pathField);
 
 			
