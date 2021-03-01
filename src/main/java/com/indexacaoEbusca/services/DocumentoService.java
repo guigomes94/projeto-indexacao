@@ -5,8 +5,8 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.indexacaoEbusca.Repositories.DocumentoRepository;
 import com.indexacaoEbusca.models.Documento;
+import com.indexacaoEbusca.repositories.DocumentoRepository;
 
 @Service
 public class DocumentoService {
@@ -16,10 +16,6 @@ public class DocumentoService {
 	
 	public List<Documento> listAll() {
 		return documentos.findAll();
-	}
-	
-	public List<Documento> listBySearch(String text) {
-		return documentos.search(text.toUpperCase()); 
 	}
 	
 	public Documento create(Documento obj) {

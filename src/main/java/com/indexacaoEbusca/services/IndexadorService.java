@@ -47,7 +47,7 @@ public class IndexadorService {
 	 * @param path The file to index, or the directory to recurse into to find files to index
 	 * @throws IOException If there is a low-level I/O error
 	 */
-	public void criarOuAtualizarIndices(String idArquivo) {
+	public void criarOuAtualizarIndices(String nomeArquivo, String idArquivo) {
 		String pastaArquivos = "keywords";
 		String pastaIndice = "indice";
 		boolean create = isDirEmpty(pastaIndice);
@@ -95,7 +95,7 @@ public class IndexadorService {
 					@Override
 					public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 						try {
-							indexarDocumento(writer, file, attrs.lastModifiedTime().toMillis(), idArquivo);
+							indexarDocumento(writer, file, attrs.lastModifiedTime().toMillis(), nomeArquivo, idArquivo);
 						} catch (IOException ignore) {
 							// don't index files that can't be read.
 						}
@@ -104,7 +104,7 @@ public class IndexadorService {
 				});
 			} 
 			else {
-				indexarDocumento(writer, path, Files.getLastModifiedTime(path).toMillis(), idArquivo);
+				indexarDocumento(writer, path, Files.getLastModifiedTime(path).toMillis(), nomeArquivo, idArquivo);
 			}
 			writer.close();
 
@@ -127,7 +127,7 @@ public class IndexadorService {
 	}
 
 	/** indexar um unico documento */
-	static void indexarDocumento(IndexWriter writer, Path file, long lastModified, String idArquivo) throws IOException {
+	static void indexarDocumento(IndexWriter writer, Path file, long lastModified, String nomeArquivo, String idArquivo) throws IOException {
 		try (InputStream stream = Files.newInputStream(file)) {
 			// make a new, empty document
 			Document doc = new Document();
@@ -137,8 +137,10 @@ public class IndexadorService {
 			// the field into separate words and don't index term frequency
 			// or positional information:
 			//path == title
-			Field pathField = new StringField("path", idArquivo, Field.Store.YES);
-			doc.add(pathField);
+			Field nameField = new StringField("name", nomeArquivo, Field.Store.YES);
+			Field idField = new StringField("id", idArquivo, Field.Store.YES);
+			doc.add(nameField);
+			doc.add(idField);
 
 			
 			// Add the last modified date of the file a field named "modified".

@@ -1,6 +1,7 @@
 package com.indexacaoEbusca.controllers;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -21,6 +22,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.indexacaoEbusca.models.DBFile;
 import com.indexacaoEbusca.models.Documento;
+import com.indexacaoEbusca.models.SearchResponse;
 import com.indexacaoEbusca.models.UploadFileResponse;
 import com.indexacaoEbusca.services.DBFileStorageService;
 import com.indexacaoEbusca.services.DocumentoService;
@@ -29,6 +31,7 @@ import com.indexacaoEbusca.services.IndexadorService;
 import com.indexacaoEbusca.services.KeywordsExtractorService;
 import com.indexacaoEbusca.services.OCRService;
 import com.indexacaoEbusca.services.ProcessadorService;
+import com.indexacaoEbusca.services.SearchService;
 import com.indexacaoEbusca.services.utils.Stem;
 
 @RestController
@@ -57,6 +60,9 @@ public class DocumentoController {
 	
 	@Autowired
 	private IndexadorService indexador;
+	
+	@Autowired
+	private SearchService buscador;
 
 	@GetMapping
 	public ResponseEntity<?> listAll() {
@@ -66,7 +72,24 @@ public class DocumentoController {
 
 	@GetMapping("/search")
 	public ResponseEntity<?> listBySearch(@RequestParam String text) {
-		List<Documento> result = service.listBySearch(text);
+		List<SearchResponse> result = new ArrayList<>();
+		try {
+			result = buscador.searchFiles(text);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String url = ServletUriComponentsBuilder.
+				fromCurrentContextPath()
+				.path(BASE_URL)
+				.path("/downloadFile/")
+				.toUriString();
+		
+		for (SearchResponse res : result) {
+			res.setUrl(url + res.getId());
+		}
+		
 		return !result.isEmpty() ? ResponseEntity.ok(result) : ResponseEntity.noContent().build();
 	}
 
@@ -122,7 +145,7 @@ public class DocumentoController {
 				.path(dbFile.getId().toString())
 				.toUriString();
 		
-		indexador.criarOuAtualizarIndices(dbFile.getId().toString());
+		indexador.criarOuAtualizarIndices(dbFile.getFileName(), dbFile.getId().toString());
 
 		return save != null ? 
 				ResponseEntity.status(HttpStatus.CREATED)
