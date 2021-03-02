@@ -17,12 +17,12 @@ import com.indexacaoEbusca.configs.FileStorageProperties;
 import com.indexacaoEbusca.services.exceptions.FileStorageException;
 
 @Service
-public class FileStorageService {
+public class FileLocalStorageService {
 	
 	private final Path fileStorageLocation;
 
     @Autowired
-    public FileStorageService(FileStorageProperties fileStorageProperties) {
+    public FileLocalStorageService(FileStorageProperties fileStorageProperties) {
         this.fileStorageLocation = Paths.get(fileStorageProperties.getUploadDir())
                 .toAbsolutePath().normalize();
 
