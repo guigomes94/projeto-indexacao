@@ -23,6 +23,10 @@ import com.indexacaoEbusca.services.BuscadorService;
 import com.indexacaoEbusca.services.DBFileStorageService;
 import com.indexacaoEbusca.services.UploadService;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+
+@Api
 @RestController
 @RequestMapping("/api/documentos")
 public class DocumentoController {
@@ -36,6 +40,7 @@ public class DocumentoController {
 	@Autowired
 	private DBFileStorageService dbFileStorageService;
 
+	@ApiOperation("Retorna uma lista de arquivos, conforme a busca.")
 	@GetMapping("/search")
 	public ResponseEntity<?> listBySearch(@RequestParam String text) {
 		List<SearchResponse> result = buscador.searchFiles(text);
@@ -43,6 +48,7 @@ public class DocumentoController {
 		return !result.isEmpty() ? ResponseEntity.ok(result) : ResponseEntity.noContent().build();
 	}
 	
+	@ApiOperation("Retorna url para download do arquivo.")
 	@GetMapping("/downloadFile/{fileId}")
 	public ResponseEntity<Resource> downloadFile(@PathVariable Long fileId) {
 		DBFile dbFile = dbFileStorageService.getFile(fileId);
@@ -53,6 +59,7 @@ public class DocumentoController {
 				.body(new ByteArrayResource(dbFile.getData()));
 	}
 	
+	@ApiOperation("Persisti o arquivo no banco e indexa.")
 	@PostMapping("/uploadFile")
 	public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
 		UploadFileResponse response = uploadService.uploadFile(file);

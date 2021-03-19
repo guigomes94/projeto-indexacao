@@ -11,7 +11,7 @@ import net.sourceforge.tess4j.TesseractException;
 @Service
 public class OCRService {
 	
-	public String crack(String filePath) {
+	public String extrairTexto(String filePath) {
 		String LIB_FOLDER_PATH = "./tessdata";
 		File imageFile = new File(filePath);
 		

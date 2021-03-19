@@ -1,9 +1,5 @@
 package com.indexacaoEbusca.services;
 
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -11,7 +7,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import com.indexacaoEbusca.models.DBFile;
 import com.indexacaoEbusca.models.UploadFileResponse;
-import com.indexacaoEbusca.services.utils.Stem;
 
 @Service
 public class UploadService {
@@ -31,42 +26,20 @@ public class UploadService {
 	private ProcessadorService processador;
 	
 	@Autowired
-	private KeywordsExtractorService keywordsExtrator;
-	
-	@Autowired
 	private IndexadorService indexador;
 	
 	public UploadFileResponse uploadFile(MultipartFile file) {
-		String localStorage = fileLocalStorageService.storeFile(file);
+		String localStorage = fileLocalStorageService.storeFile(file); // armazenar o arquivo localmente
 
-		String extracao = extrator.crack(localStorage);
+		String extracao = extrator.extrairTexto(localStorage); // extrair texto do pdf
 		
-		String processada = processador.processarTexto(extracao);
+		String keywords = processador.getRadicais(extracao); // processar o texto pra gerar índices
 		
-		List<Stem> keywords = new LinkedList<>();
-
-		try {
-			keywords = keywordsExtrator.getKeywordsList(processada);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		fileLocalStorageService.storeKeywords(keywords); // salvar índices localmente
 		
-		String textSteam = "";
+		DBFile dbFile = dbFileStorageService.storeFile(file); // salvar arquivo no banco de dados
 		
-		if (!keywords.isEmpty()) {
-			
-			StringBuilder result = new StringBuilder();
-			
-			for (Stem keyword : keywords) {
-				result.append(keyword.getStem() + " ");
-			}
-			
-			textSteam = result.toString();
-		}
-		
-		fileLocalStorageService.storeKeywords(textSteam);
-		
-		DBFile dbFile = dbFileStorageService.storeFile(file);
+		indexador.criarOuAtualizarIndices(dbFile.getFileName(), dbFile.getId().toString()); // criar ou atualizar os índices
 		
 		String fileDownloadUri = ServletUriComponentsBuilder.
 				fromCurrentContextPath()
@@ -74,9 +47,6 @@ public class UploadService {
 				.path("/downloadFile/")
 				.path(dbFile.getId().toString())
 				.toUriString();
-		
-		indexador.criarOuAtualizarIndices(dbFile.getFileName(), dbFile.getId().toString());
-		
 		
 		UploadFileResponse response = new UploadFileResponse(dbFile.getFileName(),
 				fileDownloadUri, 

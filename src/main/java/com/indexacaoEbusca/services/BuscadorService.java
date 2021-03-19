@@ -51,14 +51,14 @@ public class BuscadorService {
 		try {
 			query = parser.parse(consulta);
 		} catch (ParseException e) {
-			throw new ConsultaIndiceException("Alguém deu errado na consulta. Por favor, tente novamente!", e);
+			throw new ConsultaIndiceException("Algo deu errado na consulta. Por favor, tente novamente!", e);
 		}
 		// System.out.println("Buscando por: " + query.toString(field));
 		TopDocs hits;
 		try {
 			hits = searcher.search(query, 100);
 		} catch (IOException e) {
-			throw new ConsultaIndiceException("Alguém deu errado na consulta. Por favor, tente novamente!", e);
+			throw new ConsultaIndiceException("Algo deu errado na consulta. Por favor, tente novamente!", e);
 		}
 		ScoreDoc[] scoreDocs = hits.scoreDocs;
 
