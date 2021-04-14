@@ -49,12 +49,12 @@ public class IndexadorService {
 	 */
 	public void criarOuAtualizarIndices(String nomeArquivo, String idArquivo) {
 		String pastaArquivos = "keywords";
-		String pastaIndice = "indice";
+		String pastaIndice = "indices";
 		boolean create = isDirEmpty(pastaIndice);
 		
 		final Path path = Paths.get(pastaArquivos);
 		if (!Files.isReadable(path)) {
-			System.out.println("pasta origem '" +path.toAbsolutePath()+ "' does not exist or is not readable, please check the path");
+			System.out.println("pasta origem '" + path.toAbsolutePath() + "' does not exist or is not readable, please check the path");
 			System.exit(1);
 		}
 

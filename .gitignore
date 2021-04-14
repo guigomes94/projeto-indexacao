@@ -4,8 +4,9 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+/bin
 /localStorage
-/indice
+/indices
 /keywords
 
 ### STS ###

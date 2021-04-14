@@ -20,16 +20,27 @@ import com.indexacaoEbusca.services.exceptions.FileStorageException;
 public class FileLocalStorageService {
 	
 	private final Path fileStorageLocation;
+	
+	private final Path keywordsLocation;
+	
+	private final Path indicesLocation;
 
     @Autowired
     public FileLocalStorageService(FileStorageProperties fileStorageProperties) {
         this.fileStorageLocation = Paths.get(fileStorageProperties.getUploadDir())
                 .toAbsolutePath().normalize();
+        
+        this.keywordsLocation = Paths.get(fileStorageProperties.getKeywordDir()).toAbsolutePath().normalize();
+        
+        this.indicesLocation = Paths.get(fileStorageProperties.getIndiceDir()).toAbsolutePath().normalize();
 
         try {
             Files.createDirectories(this.fileStorageLocation);
+            Files.createDirectories(keywordsLocation);
+            Files.createDirectories(indicesLocation);
+            
         } catch (Exception ex) {
-            throw new FileStorageException("Could not create the directory where the uploaded files will be stored.", ex);
+            throw new FileStorageException("Não foi possível criar o diretório.", ex);
         }
     }
 
@@ -40,7 +51,7 @@ public class FileLocalStorageService {
         try {
             // Check if the file's name contains invalid characters
             if(fileName.contains("..")) {
-                throw new FileStorageException("Sorry! Filename contains invalid path sequence " + fileName);
+                throw new FileStorageException("Caminho inválido para arquivo. " + fileName);
             }
 
             // Copy file to the target location (Replacing existing file with the same name)
@@ -56,9 +67,10 @@ public class FileLocalStorageService {
     public void storeKeywords(String text) {
     	FileWriter arq;
     	PrintWriter escrever;
+    	String fileName = "/keywords.txt";
     	
 		try {
-			arq = new FileWriter("./keywords/keywords.txt");
+			arq = new FileWriter(this.keywordsLocation + fileName);
 			escrever = new PrintWriter(arq);
 			escrever.printf(text);
 			

@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -20,37 +19,81 @@ import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.springframework.stereotype.Service;
 
-import com.indexacaoEbusca.services.utils.Stem;
+import com.indexacaoEbusca.models.Stem;
 
-/**
- * Keywords extractor functionality handler
- */
+
 @Service
 public class ProcessadorService {
-	private static List<Stem> lista;
-	/**
-	 * Get list of keywords with stem form, frequency rank, and terms dictionary
-	 *
-	 * @param fullText
-	 * @return List<Stem>, which contains keywords cards
-	 * @throws IOException
-	 */
-	public List<Stem> getKeywordsList(String fullText) throws IOException {
+	
+	public String limparTexto(String fullText) {
 		TokenStream tokenStream = null;
 
 		try {
-			//Modulo limpeza
-			
 			// treat the dashed words, don't let separate them during the processing
-			fullText = fullText.replaceAll("-+", "-0");
+			fullText = fullText.replaceAll("-+", " ");
 			// replace any punctuation char but apostrophes and dashes with a space
 			fullText = fullText.replaceAll("[\\p{Punct}&&[^'-]]+", " ");
 			// replace most common English contractions
 			fullText = fullText.replaceAll("(?:'(?:[tdsm]|[vr]e|ll))+\\b", "");
 
-			if(lista==null) {
-				lista = new ArrayList<>();
+			StandardTokenizer stdToken = new StandardTokenizer();
+			stdToken.setReader(new StringReader(fullText));
+			
+			tokenStream = new StopFilter(
+							new ASCIIFoldingFilter(new ClassicFilter(new LowerCaseFilter(stdToken))), 
+							BrazilianAnalyzer.getDefaultStopSet());
+			
+			tokenStream.reset();
+			CharTermAttribute token = tokenStream.getAttribute(CharTermAttribute.class);
+			StringBuilder result = new StringBuilder();
+			//pegar as palavras (token) do texto
+			while (tokenStream.incrementToken()) {
+				String term = token.toString();
+				result.append(term+" ");
 			}
+			tokenStream.end();
+			return result.toString();
+			
+		} catch(IOException e) {	
+			e.printStackTrace();	
+		} finally {
+			if (tokenStream != null) {
+				try {
+					tokenStream.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return null;
+	}
+	
+	public String getRadicais(String extracao) {
+		List<Stem> keywords = new ArrayList<>();
+		String radicais = "";
+		
+		keywords = getKeywordsList(extracao);
+		
+		if (!keywords.isEmpty()) {
+			
+			StringBuilder result = new StringBuilder();
+			
+			for (Stem keyword : keywords) {
+				result.append(keyword.getStem() + " ");
+			}
+			
+			radicais = result.toString();
+		}
+		
+		return radicais;
+	}
+	
+	private List<Stem> getKeywordsList(String fullText) {
+		TokenStream tokenStream = null;
+		List<Stem> list = new ArrayList<>();
+
+		try {
+
 			StandardTokenizer stdToken = new StandardTokenizer();
 			stdToken.setReader(new StringReader(fullText));
 			
@@ -66,15 +109,17 @@ public class ProcessadorService {
 				String s = getStemForm(term);
 
 				if (s != null) {
-					Stem stem = find(lista, new Stem(s.replaceAll("-0", "-")));
+					Stem stem = find(list, new Stem(s.replaceAll("-0", "-")));
 					stem.add(term.replaceAll("-0", "-"));
 				}
 			}
 
 			// reverse sort by frequency
-			Collections.sort(lista);
+			Collections.sort(list);
 
-			return lista;
+			return list;
+		} catch(IOException e) {	
+			e.printStackTrace();	
 		} finally {
 			if (tokenStream != null) {
 				try {
@@ -84,16 +129,11 @@ public class ProcessadorService {
 				}
 			}
 		}
+		
+		return null;
 	}
-
-	/**
-	 * Get stem form of the term
-	 *
-	 * @param term
-	 * @return String, which contains the stemmed form of the term
-	 * @throws IOException
-	 */
-	private static String getStemForm(String term) throws IOException {
+	
+	private String getStemForm(String term) {
 		TokenStream tokenStream = null;
 		try {
 			StandardTokenizer stdToken = new StandardTokenizer();
@@ -124,7 +164,10 @@ public class ProcessadorService {
 			}
 
 			return stem;
-		} finally {
+		} catch(IOException e ) {
+			e.printStackTrace();
+		}
+		finally {
 			if (tokenStream != null) {
 				try {
 					tokenStream.close();
@@ -133,16 +176,9 @@ public class ProcessadorService {
 				}
 			}
 		}
+		return null;
 	}
-
-	/**
-	 * Find sample in collection
-	 *
-	 * @param collection
-	 * @param sample
-	 * @param <T>
-	 * @return <T> T, which contains the found object within collection if exists, otherwise the initially searched object
-	 */
+	
 	private static <T> T find(Collection<T> collection, T sample) {
 
 		for (T element : collection) {
@@ -156,28 +192,4 @@ public class ProcessadorService {
 		return sample;
 	}
 
-	public String getRadicais(String extracao) {
-		List<Stem> keywords = new LinkedList<>();
-		String radicais = "";
-
-		try {
-			keywords = getKeywordsList(extracao);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		if (!keywords.isEmpty()) {
-			
-			StringBuilder result = new StringBuilder();
-			
-			for (Stem keyword : keywords) {
-				result.append(keyword.getStem() + " ");
-				System.out.println(keyword.getStem());
-			}
-			
-			radicais = result.toString();
-		}
-		
-		return radicais;
-	}
 }
