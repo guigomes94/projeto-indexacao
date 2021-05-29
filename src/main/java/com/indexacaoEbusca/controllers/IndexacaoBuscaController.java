@@ -16,7 +16,7 @@ import com.indexacaoEbusca.models.IndexacaoRequest;
 import com.indexacaoEbusca.models.IndexacaoResponse;
 import com.indexacaoEbusca.models.SearchResponse;
 import com.indexacaoEbusca.services.BuscadorService;
-import com.indexacaoEbusca.services.IndexacaoService;
+import com.indexacaoEbusca.services.IndexadorService;
 import com.indexacaoEbusca.services.OCRService;
 
 import io.swagger.annotations.Api;
@@ -31,7 +31,7 @@ public class IndexacaoBuscaController {
 	private OCRService ocrService;
 	
 	@Autowired
-	private IndexacaoService indexacaoService;
+	private IndexadorService indexacaoService;
 	
 	@Autowired
 	private BuscadorService buscador;
@@ -54,11 +54,19 @@ public class IndexacaoBuscaController {
 	}
 	
 	@ApiOperation("Retorna uma lista de arquivos, conforme a busca.")
-	@GetMapping("/buscar")
-	public ResponseEntity<?> buscar(@RequestParam String text) {
+	@GetMapping("/buscarFile")
+	public ResponseEntity<?> buscarFile(@RequestParam String text) {
 		SearchResponse result = buscador.searchFiles(text);
 		
-		return !result.ids.isEmpty() ? ResponseEntity.ok(result) : ResponseEntity.noContent().build();
+		return ResponseEntity.ok(result);
+	}
+	
+	@ApiOperation("Retorna uma lista de documentos, conforme a busca.")
+	@GetMapping("/buscarDoc")
+	public ResponseEntity<?> buscarDoc(@RequestParam String text) {
+		SearchResponse result = buscador.searchDocs(text);
+		
+		return ResponseEntity.ok(result);
 	}
 
 }

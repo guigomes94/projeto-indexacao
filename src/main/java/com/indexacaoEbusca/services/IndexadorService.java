@@ -1,175 +1,123 @@
 package com.indexacaoEbusca.services;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.time.LocalDate;
+import java.util.Date;
 
+import org.apache.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.br.BrazilianAnalyzer;
+import org.apache.lucene.document.DateTools;
+import org.apache.lucene.document.DateTools.Resolution;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
-import org.apache.lucene.index.Term;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import com.indexacaoEbusca.models.IndexacaoRequest;
+import com.indexacaoEbusca.models.IndexacaoResponse;
 
 @Service
 public class IndexadorService {
 	
-	/**
-	 * Indexes the given file using the given writer, or if a directory is given,
-	 * recurses over files and directories found under the given directory.
-	 * 
-	 * NOTE: This method indexes one document per input file.  This is slow.  For good
-	 * throughput, put multiple documents into your input file(s).  
-	 * An example of this is
-	 * in the benchmark module, which can create "line doc" files, one document per line,
-	 * using the
-	 * <a href="../../../../../contrib-benchmark/org/apache/lucene/benchmark/byTask/tasks/WriteLineDocTask.html"
-	 * >WriteLineDocTask</a>.
-	 *  
-	 * @param writer Writer to the index where the given file/dir info will be stored
-	 * @param path The file to index, or the directory to recurse into to find files to index
-	 * @throws IOException If there is a low-level I/O error
-	 */
-	public void criarOuAtualizarIndices(String nomeArquivo, String idArquivo) {
-		String pastaArquivos = "keywords";
-		String pastaIndice = "indices";
-		boolean create = isDirEmpty(pastaIndice);
-		
-		final Path path = Paths.get(pastaArquivos);
-		if (!Files.isReadable(path)) {
-			System.out.println("pasta origem '" + path.toAbsolutePath() + "' does not exist or is not readable, please check the path");
-			System.exit(1);
+	@Autowired
+	private ProcessadorService processador;
+	
+	private static final Logger logger = Logger.getLogger(IndexadorService.class);
+	private String pastaIndice = "indices";
+	
+	public IndexacaoResponse indexarArquivo(IndexacaoRequest info) {
+			
+			try {
+				indexar(info);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			LocalDate dataIndexacao = LocalDate.now();
+			
+			IndexacaoResponse res = new IndexacaoResponse(dataIndexacao);
+			
+			return res;
 		}
+		
+	public void indexar(IndexacaoRequest info) throws IOException {
+		try {
+			IndexWriter writer = configurarIndice();	//true = apaga e cria indice
+			Document doc = new Document();
+			String dataIndexacao = DateTools.dateToString(new Date(), Resolution.DAY);
+			String conteudo = processador.prepararIndices(info.getTexto());
+			
+			doc.add(new TextField("conteudo", conteudo, Store.YES));
+			doc.add(new StringField("iddocumento", info.getIdDocumento().toString(), Field.Store.YES));
+			doc.add(new StringField("idarquivo", info.getIdArquivo().toString(), Field.Store.YES));
+			doc.add(new TextField("tamanho", String.valueOf(info.getTexto().length()), Store.YES));
+			doc.add(new StringField("dataIndexacao", dataIndexacao,	Store.YES));
 
+			logger.info("Adicionando Documento ao indice");
+			writer.addDocument(doc);
+			writer.close();		
+			logger.info("Fechando indice");
+	
+		}
+		catch(Exception e) {
+			logger.info(" erro na classe: " + e.getClass() +	", mensagem: " + e.getMessage());
+		}
+	}
+	
+	private IndexWriter configurarIndice() {
 		try {
 			Directory dir = FSDirectory.open(Paths.get(pastaIndice));
-			//Analyzer analyzer = new StandardAnalyzer();
 			Analyzer analizador = new BrazilianAnalyzer();
 			IndexWriterConfig iwc = new IndexWriterConfig(analizador);
-			if (create) {
-				// Create a new index in the directory, removing any
-				// previously indexed documents:
-				// System.out.println("Criando indices na pasta '" + pastaIndice + "'...");
-				iwc.setOpenMode(OpenMode.CREATE);
-			} else {
-				// Add new documents to an existing index:
-				// System.out.println("Atualizando indices na pasta '" + pastaIndice + "'...");
-				iwc.setOpenMode(OpenMode.CREATE_OR_APPEND);
-			}
+			iwc.setOpenMode(OpenMode.CREATE_OR_APPEND); // Add new documents to an existing index:
+			logger.info("abrindo indice '" + pastaIndice + "'...");
 
-			// Optional: for better indexing performance, if you
-			// are indexing many documents, increase the RAM
-			// buffer.  But if you do this, increase the max heap
-			// size to the JVM (eg add -Xmx512m or -Xmx1g):
-			//
-			// iwc.setRAMBufferSizeMB(256.0);
+			IndexWriter writer = new IndexWriter(dir, iwc);	
+			return writer;
 
-			IndexWriter writer = new IndexWriter(dir, iwc);		
-			// NOTE: if you want to maximize search performance,
-			// you can optionally call forceMerge here.  This can be
-			// a terribly costly operation, so generally it's only
-			// worth it when your index is relatively static (ie
-			// you're done adding documents to it):
-			//
-			// writer.forceMerge(1);
-			
-			if (Files.isDirectory(path)) {
-				Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
-					@Override
-					public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-						try {
-							indexarDocumento(writer, file, attrs.lastModifiedTime().toMillis(), nomeArquivo, idArquivo);
-						} catch (IOException ignore) {
-							// don't index files that can't be read.
-						}
-						return FileVisitResult.CONTINUE;
-					}
-				});
-			} 
-			else {
-				indexarDocumento(writer, path, Files.getLastModifiedTime(path).toMillis(), nomeArquivo, idArquivo);
-			}
-			writer.close();
 
 		} catch (IOException e) {
-			System.out.println(" caught a " + e.getClass() +
-					"\n with message: " + e.getMessage());
+			logger.info(" erro na classe: " + e.getClass() +	", mensagem: " + e.getMessage());
 		}
-
+		return null;
 	}
-
-	private boolean isDirEmpty(String path) {
-		File dir = new File(path);
-		File[] arqs = dir.listFiles();
-		
-		if (arqs.length == 0) {
-			return true;
-		}
-		
-		return false;
-	}
-
-	/** indexar um unico documento */
-	static void indexarDocumento(IndexWriter writer, Path file, long lastModified, String nomeArquivo, String idArquivo) throws IOException {
-		try (InputStream stream = Files.newInputStream(file)) {
-			// make a new, empty document
-			Document doc = new Document();
-
-			// Add the path of the file as a field named "path".  Use a
-			// field that is indexed (i.e. searchable), but don't tokenize 
-			// the field into separate words and don't index term frequency
-			// or positional information:
-			//path == title
-			Field nameField = new StringField("name", nomeArquivo, Field.Store.YES);
-			Field idField = new StringField("id", idArquivo, Field.Store.YES);
-			doc.add(nameField);
-			doc.add(idField);
-
-			
-			// Add the last modified date of the file a field named "modified".
-			// Use a LongPoint that is indexed (i.e. efficiently filterable with
-			// PointRangeQuery).  This indexes to milli-second resolution, which
-			// is often too fine.  You could instead create a number based on
-			// year/month/day/hour/minutes/seconds, down the resolution you require.
-			// For example the long value 2011021714 would mean
-			// February 17, 2011, 2-3 PM.
-			doc.add(new LongPoint("modified", lastModified));
-
-			// Add the contents of the file to a field named "contents".  Specify a Reader,
-			// so that the text of the file is tokenized and indexed, but not stored.
-			// Note that FileReader expects the file to be in UTF-8 encoding.
-			// If that's not the case searching for special characters will fail.
-			doc.add(new TextField("contents", new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))));
-
-			if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
-				// New index, so we just add the document (no old document can be there):
-				// System.out.println("adding " + file);
-				writer.addDocument(doc);
-			} 
-			else {
-				// Existing index (an old copy of this document may have been indexed) so 
-				// we use updateDocument instead to replace the old one matching the exact 
-				// path, if present:
-				// System.out.println("updating " + file);
-				writer.updateDocument(new Term("path", file.toString()), doc);
+	
+	public void listarDocumentos() {
+		IndexReader reader = null;
+		try {
+			Directory dir = FSDirectory.open(Paths.get(pastaIndice));
+			reader = DirectoryReader.open(dir);
+			logger.info("");	
+			logger.info("------------------");
+			logger.info("Document List: id/fields/values");
+			int maxDoc = reader.maxDoc();
+			for (int i = 0; i < maxDoc; i++) {  // i representa o id do documento
+				logger.info("------------------");
+				logger.info("id="+i);
+				Document d = reader.document(i);
+				for(IndexableField f : d.getFields() ) {
+					logger.info("field="+f.name() + "/" +f.fieldType());   //f.stringValue()
+					logger.info("value="+f.getCharSequenceValue()); //valor do campo
+				}
 			}
+			reader.close();
+		} catch (IOException e) {
+			// Any error goes here
+			e.printStackTrace();
 		}
 	}
 

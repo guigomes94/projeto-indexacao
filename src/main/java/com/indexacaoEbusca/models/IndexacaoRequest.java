@@ -2,9 +2,9 @@ package com.indexacaoEbusca.models;
 
 public class IndexacaoRequest {
 	
-	private Integer id;
+	private Integer idDocumento;
 	
-	private String nomeArquivo;
+	private Integer idArquivo;
 	
 	private String texto;
 	
@@ -12,26 +12,26 @@ public class IndexacaoRequest {
 
 	}
 
-	public IndexacaoRequest(Integer id, String nomeArquivo, String texto) {
-		this.id = id;
-		this.nomeArquivo = nomeArquivo;
+	public IndexacaoRequest(Integer idDocumento, Integer idArquivo, String texto) {
+		this.idDocumento = idDocumento;
+		this.idArquivo = idArquivo;
 		this.texto = texto;
 	}
 
-	public Integer getId() {
-		return id;
+	public Integer getIdDocumento() {
+		return idDocumento;
 	}
 
-	public void setId(Integer id) {
-		this.id = id;
+	public void setIdDocumento(Integer idDocumento) {
+		this.idDocumento = idDocumento;
 	}
 
-	public String getNomeArquivo() {
-		return nomeArquivo;
+	public Integer getIdArquivo() {
+		return idArquivo;
 	}
 
-	public void setNomeArquivo(String nomeArquivo) {
-		this.nomeArquivo = nomeArquivo;
+	public void setIdArquivo(Integer idArquivo) {
+		this.idArquivo = idArquivo;
 	}
 
 	public String getTexto() {
@@ -41,5 +41,6 @@ public class IndexacaoRequest {
 	public void setTexto(String texto) {
 		this.texto = texto;
 	}
+
 
 }

@@ -29,8 +29,8 @@ public class OCRService {
 	}
 	
 	private String extrair(String filePath) {
-		File imageFile = new File(filePath);
-		String LIB_FOLDER_PATH = "src/main/resources/tessdata";
+		File image = new File(filePath);
+		String LIB_FOLDER_PATH = "./tessdata";
 		
 		ITesseract instance = new Tesseract();
 		instance.setDatapath(LIB_FOLDER_PATH);
@@ -39,12 +39,14 @@ public class OCRService {
 		String result;
 		
 		try {
-			result = instance.doOCR(imageFile);
+			result = instance.doOCR(image);
 			String textoLimpo = processador.limparTexto(result);
 			
 			return textoLimpo;
 		} catch (TesseractException e) {
 			return null;
+		} finally {
+			image.delete();
 		}
 
 	}
