@@ -24,7 +24,7 @@ public class BuscadorService {
 	
 	private static final Logger logger = Logger.getLogger(BuscadorService.class);
 
-	public SearchResponse searchFiles(String search) {
+	public SearchResponse search(String search) {
 		SearchResponse resultSearch = new SearchResponse();
 		
 		String pastaIndice = "indices";
@@ -48,13 +48,14 @@ public class BuscadorService {
 			TopDocs hits = searcher.search(query, 100);
 			ScoreDoc[] scoreDocs = hits.scoreDocs;
 
-			// int n = Math.toIntExact(hits.totalHits.value);
-			// System.out.println(n + " total de acertos");
+			int n = Math.toIntExact(hits.totalHits.value);
+			System.out.println(n + " total de acertos");
 
 			for(ScoreDoc sd : scoreDocs){
 				Document d = searcher.doc(sd.doc);
 				
-				resultSearch.ids.add(Long.parseLong(d.get("idarquivo")));
+				resultSearch.chavesPrincipal.add(d.get("chavePrincipal"));
+				resultSearch.chavesSecundaria.add(d.get("chaveSecundaria"));
 			}
 			
 			reader.close();
@@ -69,49 +70,5 @@ public class BuscadorService {
 		return resultSearch;
 	}
 	
-	public SearchResponse searchDocs(String search) {
-		SearchResponse resultSearch = new SearchResponse();
-		
-		String pastaIndice = "indices";
-		String field = "conteudo";
-		String consulta = search;
-		
-		try {
-			
-			Directory diretorio = FSDirectory.open(Paths.get(pastaIndice));
-			IndexReader reader = DirectoryReader.open(diretorio);
-			IndexSearcher searcher = new IndexSearcher(reader);
-			
-			Analyzer analizador = new BrazilianAnalyzer();
-			
-			QueryParser parser = new QueryParser(field, analizador);
-
-			Query query = parser.parse(consulta);
-			
-			System.out.println("Buscando por: " + query.toString(field));
-			
-			TopDocs hits = searcher.search(query, 100);
-			ScoreDoc[] scoreDocs = hits.scoreDocs;
-
-			// int n = Math.toIntExact(hits.totalHits.value);
-			// System.out.println(n + " total de acertos");
-
-			for(ScoreDoc sd : scoreDocs){
-				Document d = searcher.doc(sd.doc);
-				
-				resultSearch.ids.add(Long.parseLong(d.get("iddocumento")));
-			}
-			
-			reader.close();
-			diretorio.close();
-			
-			return resultSearch;
-		}
-		catch(Exception e) {
-			logger.info(" erro na classe: " + e.getClass() +	", mensagem: " + e.getMessage());
-		}
-		
-		return resultSearch;
-	}
 
 }

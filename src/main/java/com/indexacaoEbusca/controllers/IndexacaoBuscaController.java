@@ -53,18 +53,10 @@ public class IndexacaoBuscaController {
 		return response != null ? ResponseEntity.status(HttpStatus.CREATED).body(response) : ResponseEntity.badRequest().build();
 	}
 	
-	@ApiOperation("Retorna uma lista de arquivos, conforme a busca.")
-	@GetMapping("/buscarFile")
-	public ResponseEntity<?> buscarFile(@RequestParam String text) {
-		SearchResponse result = buscador.searchFiles(text);
-		
-		return ResponseEntity.ok(result);
-	}
-	
-	@ApiOperation("Retorna uma lista de documentos, conforme a busca.")
-	@GetMapping("/buscarDoc")
-	public ResponseEntity<?> buscarDoc(@RequestParam String text) {
-		SearchResponse result = buscador.searchDocs(text);
+	@ApiOperation("Retorna 2 listas de referências, conforme a busca.")
+	@GetMapping("/buscar")
+	public ResponseEntity<?> buscar(@RequestParam String text) {
+		SearchResponse result = buscador.search(text);
 		
 		return ResponseEntity.ok(result);
 	}

@@ -5,6 +5,7 @@ import java.util.List;
 
 public class SearchResponse {
 	
-	public List<Long> ids = new ArrayList<>();
+	public List<String> chavesPrincipal = new ArrayList<>();
+	public List<String> chavesSecundaria = new ArrayList<>();
 	
 }

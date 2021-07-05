@@ -8,6 +8,7 @@ target/
 /localStorage
 /indices
 /keywords
+/target
 
 ### STS ###
 .apt_generated

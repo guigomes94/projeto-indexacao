@@ -15,12 +15,9 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,8 +59,8 @@ public class IndexadorService {
 			String conteudo = processador.prepararIndices(info.getTexto());
 			
 			doc.add(new TextField("conteudo", conteudo, Store.YES));
-			doc.add(new StringField("iddocumento", info.getIdDocumento().toString(), Field.Store.YES));
-			doc.add(new StringField("idarquivo", info.getIdArquivo().toString(), Field.Store.YES));
+			doc.add(new StringField("chavePrincipal", info.getChavePrincipal().toString(), Field.Store.YES));
+			doc.add(new StringField("chaveSecundaria", info.getChaveSecundaria().toString(), Field.Store.YES));
 			doc.add(new TextField("tamanho", String.valueOf(info.getTexto().length()), Store.YES));
 			doc.add(new StringField("dataIndexacao", dataIndexacao,	Store.YES));
 
@@ -94,31 +91,6 @@ public class IndexadorService {
 			logger.info(" erro na classe: " + e.getClass() +	", mensagem: " + e.getMessage());
 		}
 		return null;
-	}
-	
-	public void listarDocumentos() {
-		IndexReader reader = null;
-		try {
-			Directory dir = FSDirectory.open(Paths.get(pastaIndice));
-			reader = DirectoryReader.open(dir);
-			logger.info("");	
-			logger.info("------------------");
-			logger.info("Document List: id/fields/values");
-			int maxDoc = reader.maxDoc();
-			for (int i = 0; i < maxDoc; i++) {  // i representa o id do documento
-				logger.info("------------------");
-				logger.info("id="+i);
-				Document d = reader.document(i);
-				for(IndexableField f : d.getFields() ) {
-					logger.info("field="+f.name() + "/" +f.fieldType());   //f.stringValue()
-					logger.info("value="+f.getCharSequenceValue()); //valor do campo
-				}
-			}
-			reader.close();
-		} catch (IOException e) {
-			// Any error goes here
-			e.printStackTrace();
-		}
 	}
 
 }
