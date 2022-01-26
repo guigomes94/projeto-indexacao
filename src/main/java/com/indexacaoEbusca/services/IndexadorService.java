@@ -5,7 +5,8 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.Date;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.br.BrazilianAnalyzer;
 import org.apache.lucene.document.DateTools;
@@ -28,67 +29,66 @@ import com.indexacaoEbusca.models.IndexacaoResponse;
 
 @Service
 public class IndexadorService {
-	
+
 	@Autowired
 	private ProcessadorService processador;
-	
-	private static final Logger logger = Logger.getLogger(IndexadorService.class);
-	private String pastaIndice = "indices";
-	
-	public IndexacaoResponse indexarArquivo(IndexacaoRequest info) {
-			
-			try {
-				indexar(info);
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			LocalDate dataIndexacao = LocalDate.now();
-			
-			IndexacaoResponse res = new IndexacaoResponse(dataIndexacao);
-			
-			return res;
-		}
-		
-	public void indexar(IndexacaoRequest info) throws IOException {
+
+	private static final Logger logger = LogManager.getLogger(IndexadorService.class);
+	private String pastaIndice = "Indices";
+
+	public IndexacaoResponse indexarArquivo(IndexacaoRequest data) {
+
 		try {
-			IndexWriter writer = configurarIndice();	//true = apaga e cria indice
+			indexar(data);
+		} catch (IOException e) {
+			logger.info(" erro na classe: " + e.getClass() + ", mensagem: " + e.getMessage());
+		}
+
+		LocalDate dataIndexacao = LocalDate.now();
+
+		IndexacaoResponse res = new IndexacaoResponse(dataIndexacao);
+
+		return res;
+	}
+
+	public void indexar(IndexacaoRequest data) throws IOException {
+		try {
+			IndexWriter writer = configurarIndice(); // true = apaga e cria indice
 			Document doc = new Document();
 			String dataIndexacao = DateTools.dateToString(new Date(), Resolution.DAY);
-			String conteudo = processador.prepararIndices(info.getTexto());
-			
-			doc.add(new TextField("conteudo", conteudo, Store.YES));
-			doc.add(new StringField("chavePrincipal", info.getChavePrincipal().toString(), Field.Store.YES));
-			doc.add(new StringField("chaveSecundaria", info.getChaveSecundaria().toString(), Field.Store.YES));
-			doc.add(new TextField("tamanho", String.valueOf(info.getTexto().length()), Store.YES));
-			doc.add(new StringField("dataIndexacao", dataIndexacao,	Store.YES));
+			String conteudo = processador.prepararIndices(data.getTexto());
 
-			logger.info("Adicionando Documento ao indice");
+			doc.add(new TextField("conteudo", conteudo, Store.YES));
+			doc.add(new StringField("chavePrincipal", data.getChavePrincipal().toString(), Field.Store.YES));
+			if (data.getChaveSecundaria() != null) {
+				doc.add(new StringField("chaveSecundaria", data.getChaveSecundaria().toString(), Field.Store.YES));
+			}
+			doc.add(new TextField("tamanho", String.valueOf(data.getTexto().length()), Store.YES));
+			doc.add(new StringField("dataIndexacao", dataIndexacao, Store.YES));
+
+			logger.info("Adicionando Documento ao índice");
 			writer.addDocument(doc);
-			writer.close();		
-			logger.info("Fechando indice");
-	
-		}
-		catch(Exception e) {
-			logger.info(" erro na classe: " + e.getClass() +	", mensagem: " + e.getMessage());
+			writer.close();
+			logger.info("Fechando índice");
+
+		} catch (Exception e) {
+			logger.info(" erro na classe: " + e.getClass() + ", mensagem: " + e.getMessage());
 		}
 	}
-	
+
 	private IndexWriter configurarIndice() {
 		try {
 			Directory dir = FSDirectory.open(Paths.get(pastaIndice));
 			Analyzer analizador = new BrazilianAnalyzer();
 			IndexWriterConfig iwc = new IndexWriterConfig(analizador);
 			iwc.setOpenMode(OpenMode.CREATE_OR_APPEND); // Add new documents to an existing index:
-			logger.info("abrindo indice '" + pastaIndice + "'...");
+			logger.info("Abrindo pasta: '" + pastaIndice);
 
-			IndexWriter writer = new IndexWriter(dir, iwc);	
+			IndexWriter writer = new IndexWriter(dir, iwc);
 			return writer;
 
-
 		} catch (IOException e) {
-			logger.info(" erro na classe: " + e.getClass() +	", mensagem: " + e.getMessage());
+			logger.info(" erro na classe: " + e.getClass() + ", mensagem: " + e.getMessage());
 		}
 		return null;
 	}

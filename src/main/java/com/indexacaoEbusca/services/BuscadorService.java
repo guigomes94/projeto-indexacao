@@ -2,7 +2,8 @@ package com.indexacaoEbusca.services;
 
 import java.nio.file.Paths;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.br.BrazilianAnalyzer;
 import org.apache.lucene.document.Document;
@@ -22,12 +23,12 @@ import com.indexacaoEbusca.models.SearchResponse;
 @Service
 public class BuscadorService {
 	
-	private static final Logger logger = Logger.getLogger(BuscadorService.class);
+	private static final Logger logger = LogManager.getLogger(BuscadorService.class);
 
 	public SearchResponse search(String search) {
 		SearchResponse resultSearch = new SearchResponse();
 		
-		String pastaIndice = "indices";
+		String pastaIndice = "Índices";
 		String field = "conteudo";
 		String consulta = search;
 		
@@ -43,13 +44,13 @@ public class BuscadorService {
 
 			Query query = parser.parse(consulta);
 			
-			System.out.println("Buscando por: " + query.toString(field));
+			// System.out.println("Buscando por: " + query.toString(field));
 			
 			TopDocs hits = searcher.search(query, 100);
 			ScoreDoc[] scoreDocs = hits.scoreDocs;
 
 			int n = Math.toIntExact(hits.totalHits.value);
-			System.out.println(n + " total de acertos");
+			// System.out.println(n + " total de acertos");
 
 			for(ScoreDoc sd : scoreDocs){
 				Document d = searcher.doc(sd.doc);
